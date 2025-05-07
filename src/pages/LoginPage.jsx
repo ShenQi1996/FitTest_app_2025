@@ -28,10 +28,12 @@ const LoginPage = () => {
   
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
+        console.log("I am in ---------------")
+        console.log(userData)
         const role = userData.role;
-        dispatch(setUser({ email: user.email, role }));
-        if (role === "trainer") {
-          navigate("/trainer-dashboard");
+        dispatch(setUser({ email: user.email, role,  }));
+        if (role === "tester") {
+          navigate("/tester-dashboard");
         } else if (role === "client") {
           navigate("/client-dashboard");
         } else {

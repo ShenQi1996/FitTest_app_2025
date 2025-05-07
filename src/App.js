@@ -10,7 +10,7 @@ import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
-import TrainerDashboardPage from "./pages/TrainerDashboardPage";
+import TesterDashboardPage from "./pages/TesterDashboardPage";
 import ClientDashboardPage from "./pages/ClientDashboardPage";
 import PrivateRoute from "./components/PrivateRoute";
 function App() {
@@ -39,16 +39,16 @@ function App() {
   }
   return (
     <div className="App">
-      <header className="App-header"> Welcome Peronsal trainer App</header>
+      <header className="App-header"> Welcome Fit testing App</header>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="signup" element={<SignupPage />} />
         <Route
-          path="/trainer-dashboard"
+          path="/tester-dashboard"
           element={
-            <PrivateRoute requiredRole="trainer">
-              <TrainerDashboardPage />
+            <PrivateRoute requiredRole="tester">
+              <TesterDashboardPage />
             </PrivateRoute>
           }
         />
