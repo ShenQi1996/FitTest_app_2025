@@ -39,7 +39,6 @@ function App() {
   }
   return (
     <div className="App">
-      <header className="App-header"> Welcome Fit testing App</header>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />

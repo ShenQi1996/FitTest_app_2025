@@ -34,7 +34,6 @@ const SignupPage = () => {
             firstname: firstname,
             lastname: lastname,
             birthday: birthday,
-            appointment: appointment, 
             phone: phone
           });
       
