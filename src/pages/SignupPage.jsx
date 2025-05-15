@@ -1,9 +1,7 @@
-// src/pages/SignupPage.jsx
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import { app, db } from '../firebase.js';
+import { signUp } from '../services/authService';
+import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
 const SignupPage = () => {
@@ -13,31 +11,32 @@ const SignupPage = () => {
   const [firstname, setFirstname] = useState('');
   const [birthday, setBirthday] = useState('');
   const [phone, setPhone] = useState('');
+  const [role, setRole] = useState('client');
   const [handleError, setHandleError] = useState('');
-  const [role, setRole] = useState('');
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    const auth = getAuth(app);
-
+    setHandleError('');
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Create auth user
+      const userCredential = await signUp(email, password);
       const user = userCredential.user;
 
-      await setDoc(doc(db, "users", user.uid), {
+      // Persist user profile in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         role,
         firstname,
         lastname,
         birthday,
-        phone
+        phone,
       });
 
-      navigate("/login");
+      navigate('/login');
     } catch (err) {
-      console.error("Signup error:", err);
-      setHandleError("Failed to create account: " + err.message);
+      console.error('Signup error:', err);
+      setHandleError('Failed to create account: ' + err.message);
     }
   };
 

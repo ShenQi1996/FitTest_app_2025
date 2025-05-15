@@ -6,7 +6,7 @@ const initialState = {
   firstname: null,
   lastname: null,
   birthday: null,
-  appointment: null,
+  appointments: [],
   phone: null,
 };
 
@@ -20,15 +20,13 @@ const userSlice = createSlice({
       state.firstname = action.payload.firstname;
       state.lastname = action.payload.lastname;
       state.birthday = action.payload.birthday;
-      state.appointment = action.payload.appointment;
-      state.phone = action.payload.action;
+      state.phone = action.payload.phone;
     },
     clearUser(state) {
       state.email = null;
       state.role = null;
       state.firstname = null;
       state.lastname = null;
-      state.appointment = null;
       state.birthday = null;
       state.phone = null;
     },

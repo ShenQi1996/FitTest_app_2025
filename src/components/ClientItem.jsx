@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ClientForm from "./ClientForm";
+import { updateAppointments } from "../services/firestoreService";
 
 const ClientItem = ({
   client,
@@ -11,7 +12,7 @@ const ClientItem = ({
   editData,
   setEditData,
   handleEditSubmit,
-   updateClientInList
+  updateClientInList,
 }) => {
   const [appointmentEdits, setAppointmentEdits] = useState({});
   const [newAppointmentStart, setNewAppointmentStart] = useState("");
@@ -19,10 +20,7 @@ const ClientItem = ({
   const handleAppointmentChange = (index, field, value) => {
     setAppointmentEdits((prev) => ({
       ...prev,
-      [index]: {
-        ...prev[index],
-        [field]: value,
-      },
+      [index]: { ...prev[index], [field]: value },
     }));
   };
 
@@ -37,11 +35,8 @@ const ClientItem = ({
     };
 
     try {
-      const { updateDoc, doc } = await import("firebase/firestore");
-      const { db } = await import("../firebase");
-      await updateDoc(doc(db, "users", client.id), {
-        appointments: updatedAppointments,
-      });
+      await updateAppointments(client.id, updatedAppointments);
+      updateClientInList({ ...client, appointments: updatedAppointments });
       alert("Appointment updated.");
     } catch (err) {
       console.error("Error updating appointment:", err);
@@ -49,31 +44,49 @@ const ClientItem = ({
   };
 
   const handleAppointmentDelete = async (index) => {
-    const confirmed = window.confirm("Are you sure you want to cancel this appointment?");
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this appointment?"
+    );
     if (!confirmed) return;
 
+    const updatedAppointments = client.appointments.filter((_, i) => i !== index);
+
     try {
-      const updatedAppointments = client.appointments.filter((_, i) => i !== index);
-      const { updateDoc, doc } = await import("firebase/firestore");
-      const { db } = await import("../firebase");
-      await updateDoc(doc(db, "users", client.id), {
-        appointments: updatedAppointments,
-      });
-
-      updateClientInList({
-        ...client,
-        appointments: updatedAppointments,
-      });
-
+      await updateAppointments(client.id, updatedAppointments);
+      updateClientInList({ ...client, appointments: updatedAppointments });
       alert("Appointment cancelled.");
     } catch (err) {
       console.error("Error cancelling appointment:", err);
     }
   };
 
+  const handleAddAppointment = async (e) => {
+    e.preventDefault();
+    const newAppt = {
+      startTime: newAppointmentStart,
+      endTime: "",
+      status: "pending",
+    };
+    const updatedAppointments = [
+      ...(client.appointments || []),
+      newAppt,
+    ];
+
+    try {
+      await updateAppointments(client.id, updatedAppointments);
+      updateClientInList({ ...client, appointments: updatedAppointments });
+      setNewAppointmentStart("");
+      alert("Appointment created.");
+    } catch (err) {
+      console.error("Error adding appointment:", err);
+    }
+  };
+
   return (
     <li onClick={() => toggleExpand(client.id)}>
-      <strong>{client.firstname} {client.lastname}</strong>
+      <strong>
+        {client.firstname} {client.lastname}
+      </strong>
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -101,18 +114,32 @@ const ClientItem = ({
                   End:{" "}
                   <input
                     type="datetime-local"
-                    value={appointmentEdits[index]?.endTime || appt.endTime || ""}
+                    value={
+                      appointmentEdits[index]?.endTime ??
+                      appt.endTime ??
+                      ""
+                    }
                     onChange={(e) =>
-                      handleAppointmentChange(index, "endTime", e.target.value)
+                      handleAppointmentChange(
+                        index,
+                        "endTime",
+                        e.target.value
+                      )
                     }
                   />
                 </p>
                 <p>
                   Status:{" "}
                   <select
-                    value={appointmentEdits[index]?.status || appt.status}
+                    value={
+                      appointmentEdits[index]?.status ?? appt.status
+                    }
                     onChange={(e) =>
-                      handleAppointmentChange(index, "status", e.target.value)
+                      handleAppointmentChange(
+                        index,
+                        "status",
+                        e.target.value
+                      )
                     }
                   >
                     <option value="pending">Pending</option>
@@ -132,44 +159,17 @@ const ClientItem = ({
               </li>
             ))}
           </ul>
-            <h5>Add New Appointment</h5>
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const newAppt = {
-                    startTime: newAppointmentStart,
-                    endTime: "",
-                    status: "pending",
-                  };
-                  const updatedAppointments = [...(client.appointments || []), newAppt];
 
-                  try {
-                    const { updateDoc, doc } = await import("firebase/firestore");
-                    const { db } = await import("../firebase");
-                    await updateDoc(doc(db, "users", client.id), {
-                      appointments: updatedAppointments,
-                    });
-
-                    updateClientInList({
-                      ...client,
-                      appointments: updatedAppointments,
-                    });
-
-                    setNewAppointmentStart("");
-                    alert("Appointment created.");
-                  } catch (err) {
-                    console.error("Error adding appointment:", err);
-                  }
-                }}
-              >
-                <input
-                  type="datetime-local"
-                  value={newAppointmentStart}
-                  onChange={(e) => setNewAppointmentStart(e.target.value)}
-                  required
-                />
-                <button type="submit">Add Appointment</button>
-              </form>
+          <h5>Add New Appointment</h5>
+          <form onSubmit={handleAddAppointment}>
+            <input
+              type="datetime-local"
+              value={newAppointmentStart}
+              onChange={(e) => setNewAppointmentStart(e.target.value)}
+              required
+            />
+            <button type="submit">Add Appointment</button>
+          </form>
 
           <button
             onClick={(e) => {
@@ -190,7 +190,7 @@ const ClientItem = ({
             <ClientForm
               editData={editData}
               setEditData={setEditData}
-              isEdit={true}
+              isEdit
               onCancel={() => setEditClientId(null)}
               onSubmit={(e) => handleEditSubmit(e, client.id)}
             />

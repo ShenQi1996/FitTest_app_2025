@@ -1,5 +1,3 @@
-// src/components/ClientForm.jsx
-
 import React from "react";
 
 const ClientForm = ({
@@ -7,7 +5,8 @@ const ClientForm = ({
   setEditData,
   onSubmit,
   isEdit = false,
-  onCancel
+  onCancel,
+  showAppointmentFields = true,   // new prop
 }) => {
   // compute current datetime-local min value
   const nowLocal = new Date().toISOString().slice(0, 16);
@@ -16,7 +15,7 @@ const ClientForm = ({
     const { name, value } = e.target;
     setEditData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -26,23 +25,27 @@ const ClientForm = ({
       ...prev,
       appointment: {
         ...prev.appointment,
-        [name]: value
-      }
+        [name]: value,
+      },
     }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const start = editData.appointment?.startTime;
-    const end = editData.appointment?.endTime;
 
-    if (start && start < nowLocal) {
-      alert("Appointment start time cannot be in the past.");
-      return;
-    }
-    if (start && end && end < start) {
-      alert("Appointment end time must be after start time.");
-      return;
+    // only validate if we're showing appointment fields
+    if (showAppointmentFields) {
+      const start = editData.appointment?.startTime;
+      const end = editData.appointment?.endTime;
+
+      if (start && start < nowLocal) {
+        alert("Appointment start time cannot be in the past.");
+        return;
+      }
+      if (start && end && end < start) {
+        alert("Appointment end time must be after start time.");
+        return;
+      }
     }
 
     onSubmit(e);
@@ -83,30 +86,34 @@ const ClientForm = ({
         value={editData.phone || ""}
         onChange={handleInputChange}
       />
-      <input
-        type="datetime-local"
-        name="startTime"
-        value={editData.appointment?.startTime || ""}
-        onChange={handleAppointmentChange}
-        min={nowLocal}
-      />
-      <input
-        type="datetime-local"
-        name="endTime"
-        value={editData.appointment?.endTime || ""}
-        onChange={handleAppointmentChange}
-        // cannot end before start
-        min={editData.appointment?.startTime || nowLocal}
-      />
-      <select
-        name="status"
-        value={editData.appointment?.status || "pending"}
-        onChange={handleAppointmentChange}
-      >
-        <option value="pending">Pending</option>
-        <option value="done">Done</option>
-        <option value="no-show">No Show</option>
-      </select>
+      {/* only show these when desired */}
+      {showAppointmentFields && (
+        <>
+          <input
+            type="datetime-local"
+            name="startTime"
+            value={editData.appointment?.startTime || ""}
+            onChange={handleAppointmentChange}
+            min={nowLocal}
+          />
+          <input
+            type="datetime-local"
+            name="endTime"
+            value={editData.appointment?.endTime || ""}
+            onChange={handleAppointmentChange}
+            min={editData.appointment?.startTime || nowLocal}
+          />
+          <select
+            name="status"
+            value={editData.appointment?.status || "pending"}
+            onChange={handleAppointmentChange}
+          >
+            <option value="pending">Pending</option>
+            <option value="done">Done</option>
+            <option value="no-show">No Show</option>
+          </select>
+        </>
+      )}
       <input
         type="date"
         name="birthday"

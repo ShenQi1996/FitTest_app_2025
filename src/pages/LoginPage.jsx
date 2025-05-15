@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../slices/userSlice';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { app, db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
-
+import { signIn } from '../services/authService';
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -16,42 +15,39 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const auth = getAuth(app);
-  
+    setLoginError('');
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Authenticate
+      const userCredential = await signIn(email, password);
       const user = userCredential.user;
-  
-      // Get user role from Firestore
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-  
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        console.log("I am in ---------------")
-        console.log(userData)
-        const role = userData.role;
-        dispatch(setUser({ email: user.email, role,  }));
-        if (role === "tester") {
-          navigate("/tester-dashboard");
-        } else if (role === "client") {
-          navigate("/client-dashboard");
+
+      // Fetch and store role
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const { role } = userDoc.data();
+        dispatch(setUser({ email: user.email, role }));
+
+        // Redirect based on role
+        if (role === 'tester') {
+          navigate('/tester-dashboard');
+        } else if (role === 'client') {
+          navigate('/client-dashboard');
         } else {
-          setLoginError("Unrecognized role.");
+          setLoginError('Unrecognized role.');
         }
       } else {
-        setLoginError("No user data found.");
+        setLoginError('No user data found.');
       }
-    } catch (error) {
-      console.error("Login error:", error.message);
-      setLoginError(error.message);
+    } catch (err) {
+      console.error('Login error:', err);
+      setLoginError(err.message);
     }
   };
 
   return (
     <div>
       <h2>Login</h2>
-      {loginError && <p style={{ color: "red" }}>{loginError}</p>}
+      {loginError && <p style={{ color: 'red' }}>{loginError}</p>}
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -59,19 +55,19 @@ const LoginPage = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-        />
-        <br />
+        /><br />
         <input
           type="password"
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-        />
-        <br />
+        /><br />
         <button type="submit">Log In</button>
       </form>
-      <p>Don't have an account? <Link to="/signup">Sign up here</Link></p>
+      <p>
+        Don't have an account? <Link to="/signup">Sign up here</Link>
+      </p>
     </div>
   );
 };

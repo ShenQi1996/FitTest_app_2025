@@ -1,41 +1,33 @@
-// src/pages/ClientDashboardPage.jsx
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getAuth, signOut } from "firebase/auth";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import {
+  listenToClient,
+  updateAppointments,
+} from "../services/firestoreService";
 
 const ClientDashboardPage = () => {
   const [clientData, setClientData] = useState(null);
-  const [appointmentInput, setAppointmentInput] = useState({ startTime: "" });
+  const [appointmentInput, setAppointmentInput] = useState({
+    startTime: "",
+  });
   const navigate = useNavigate();
   const { email, role } = useSelector((state) => state.user);
 
-  // compute current datetime-local min value
   const nowLocal = new Date().toISOString().slice(0, 16);
 
+  // ——— Real-time listener for this client’s own data ———
   useEffect(() => {
     const auth = getAuth();
     const user = auth.currentUser;
     if (!user) return;
 
-    const docRef = doc(db, "users", user.uid);
-    const unsubscribe = onSnapshot(
-      docRef,
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setClientData(docSnap.data());
-        } else {
-          console.error("Client data not found.");
-        }
-      },
-      (error) => {
-        console.error("Error listening to client data:", error);
-      }
+    const unsubscribe = listenToClient(
+      user.uid,
+      (data) => setClientData(data),
+      (err) => console.error("Error listening to client data:", err)
     );
-
     return () => unsubscribe();
   }, []);
 
@@ -43,20 +35,19 @@ const ClientDashboardPage = () => {
     const auth = getAuth();
     signOut(auth)
       .then(() => navigate("/login"))
-      .catch((error) => console.error("Logout error:", error.message));
+      .catch((err) => console.error("Logout error:", err));
   };
 
   const handleBook = async (e) => {
     e.preventDefault();
     const { startTime } = appointmentInput;
 
-    // Validation: prevent past-date booking
+    if (!startTime) return;
     if (startTime < nowLocal) {
-      alert("Cannot book an appointment in the past.");
+      alert("Appointment start time cannot be in the past.");
       return;
     }
 
-    // Prevent duplicates
     const alreadyExists = (clientData.appointments || []).some(
       (appt) => appt.startTime === startTime
     );
@@ -68,17 +59,11 @@ const ClientDashboardPage = () => {
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      const docRef = doc(db, "users", user.uid);
-
-      await updateDoc(docRef, {
-        appointments: [
-          ...(clientData.appointments || []),
-          { startTime, endTime: "", status: "pending" },
-        ],
-      });
-
+      await updateAppointments(user.uid, [
+        ...(clientData.appointments || []),
+        { startTime, endTime: "", status: "pending" },
+      ]);
       setAppointmentInput({ startTime: "" });
-      // real-time listener will update the list
     } catch (err) {
       console.error("Error booking appointment:", err);
     }
@@ -86,13 +71,13 @@ const ClientDashboardPage = () => {
 
   const handleCancel = async (index) => {
     try {
-      const updatedAppointments = clientData.appointments.filter((_, i) => i !== index);
+      const updatedAppointments = clientData.appointments.filter(
+        (_, i) => i !== index
+      );
       const auth = getAuth();
       const user = auth.currentUser;
-      const docRef = doc(db, "users", user.uid);
-
-      await updateDoc(docRef, { appointments: updatedAppointments });
-      // real-time listener will update the list
+      await updateAppointments(user.uid, updatedAppointments);
+      // onSnapshot will refresh clientData
     } catch (err) {
       console.error("Error cancelling appointment:", err);
     }
@@ -106,7 +91,9 @@ const ClientDashboardPage = () => {
 
       {clientData ? (
         <>
-          <p>Name: {clientData.firstname} {clientData.lastname}</p>
+          <p>
+            Name: {clientData.firstname} {clientData.lastname}
+          </p>
           <p>Phone: {clientData.phone}</p>
           <p>Birthday: {clientData.birthday}</p>
 
@@ -118,7 +105,7 @@ const ClientDashboardPage = () => {
                 <p>End: {appt.endTime || "N/A"}</p>
                 <p>Status: {appt.status}</p>
                 <button onClick={() => handleCancel(i)}>
-                  Cancel This Appointment
+                  Cancel Appointment
                 </button>
               </li>
             ))}
@@ -133,7 +120,9 @@ const ClientDashboardPage = () => {
         <input
           type="datetime-local"
           value={appointmentInput.startTime}
-          onChange={(e) => setAppointmentInput({ startTime: e.target.value })}
+          onChange={(e) =>
+            setAppointmentInput({ startTime: e.target.value })
+          }
           min={nowLocal}
           required
         />
