@@ -6,6 +6,7 @@ import {
   listenToClient,
   updateAppointments,
 } from "../services/firestoreService";
+import { InlineWidget } from "react-calendly";
 
 const ClientDashboardPage = () => {
   const [clientData, setClientData] = useState(null);
@@ -13,7 +14,7 @@ const ClientDashboardPage = () => {
     startTime: "",
   });
   const navigate = useNavigate();
-  const { email, role } = useSelector((state) => state.user);
+  const { email, role, firstname, lastname, phone, birthday } = useSelector((state) => state.user);
 
   const nowLocal = new Date().toISOString().slice(0, 16);
 
@@ -110,6 +111,25 @@ const ClientDashboardPage = () => {
               </li>
             ))}
           </ul>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold mb-4">Book Your Fit Test</h1>
+            <InlineWidget
+               url="https://calendly.com/securefit2024/fit-testing"
+                prefill={{
+                  // built-in fields
+                  name: `${firstname} ${lastname}`,
+                  email,
+                  // map your additional questions in order:  
+                  customAnswers: {
+                    // a2 = “Date of Birth?”
+                    a2: birthday,        // e.g. "1990-09-22"
+                    // a3 = “Telephone number?”
+                    a3: phone            // e.g. "+15551234567"
+                  }
+                }}
+              styles={{ minHeight: "650px", width: "100%" , height: "800px"}}
+            />
+          </div>
         </>
       ) : (
         <p>Loading your information...</p>
